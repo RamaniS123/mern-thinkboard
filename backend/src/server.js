@@ -1,6 +1,7 @@
 import express from "express"; 
 import cors from "cors"; 
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
+import path from "path";  
 
 import notesRoutes from "./routes/notesRoutes.js"; 
 import { connectDB } from "./config/db.js"; 
@@ -14,13 +15,15 @@ dotenv.config();
 
 // Create an express app
 const app = express(); 
-const PORT = process.env.PORT || 5001
+const PORT = process.env.PORT || 5001; 
+const __dirname = path.resolve(); 
 
 // middleware
-app.use(cors({
-  origin:"http://localhost:5173",
-})); 
-
+if (process.env.NODE_ENV !== "production") { 
+  app.use(cors({
+    origin:"http://localhost:5173",
+  })); 
+}; 
 app.use(express.json()); // this middleware will parse JSON bodies: req.body
 // checks for rate limiting 
 app.use(rateLimiter); 
@@ -35,15 +38,20 @@ app.use((req,res,next) => {
 */
 app.use("/api/notes", notesRoutes); 
 
+if (process.env.NODE_ENV === "production") { 
+  app.use(express.static(path.join(__dirname,"../frontend/dist"))); 
+
+  app.get("*", (req, res) => { 
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html")); 
+  }); 
+}
+
 // Call the connectDB function 
 connectDB().then(() => { 
   // Listen for a port 
   app.listen(PORT, () => { 
   console.log("Server started on PORT:", PORT); 
   }); 
-})
+}); 
 
 
-// password: 7nMTCgTYU7pffmjU
-
-// connection string: mongodb+srv://ramanisatishkumar2005:7nMTCgTYU7pffmjU@cluster0.od1epdp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
